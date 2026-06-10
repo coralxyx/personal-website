@@ -324,7 +324,7 @@ tailwind.config = {
   #timeline-section {
     position: relative;
     height: 400vh;
-    background: #0A0A0A;
+    /* transparent — video2 shows through */
   }
 
   #timeline-sticky {
@@ -336,13 +336,13 @@ tailwind.config = {
     align-items: center;
   }
 
-  /* Fade overlay — right edge items dissolve into background */
+  /* Fade overlay — right edge items dissolve via dark gradient (video visible through) */
   #timeline-fade {
     position: absolute;
     inset: 0;
     z-index: 10;
     pointer-events: none;
-    background: linear-gradient(to left, #0A0A0A 0%, #0A0A0A 8%, transparent 30%);
+    background: linear-gradient(to left, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.55) 12%, transparent 32%);
   }
 
   /* Timeline track — horizontally translated via JS */
@@ -383,7 +383,8 @@ tailwind.config = {
     font-size: 0.625rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.35);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
   }
 
   /* Persistent quote */
@@ -397,8 +398,9 @@ tailwind.config = {
     font-size: 1.25rem;
     font-weight: 300;
     line-height: 1.4;
-    color: rgba(255,255,255,0.3);
+    color: rgba(255,255,255,0.4);
     letter-spacing: -0.01em;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.6);
   }
 
   /* Timeline item */
@@ -791,6 +793,7 @@ const video1 = document.getElementById('hero-video-1');
 const video2 = document.getElementById('hero-video-2');
 let video1Loaded = false;
 let video2Loaded = false;
+let tagsUnlocked = false;
 let phase2Active = false;
 
 // Loading screen: dismiss when video1 is ready (or 3s timeout)
@@ -798,6 +801,10 @@ const handlePhase1Loaded = () => {
   if (video1Loaded) return;
   video1Loaded = true;
   document.body.dataset.loaded = 'true';
+  // Auto-play video1 once ready
+  if (video1 && video1.paused) {
+    video1.play().catch(() => {});
+  }
 };
 
 if (video1) {
@@ -805,6 +812,8 @@ if (video1) {
   video1.addEventListener('canplay', handlePhase1Loaded);
   video1.addEventListener('canplaythrough', handlePhase1Loaded);
   video1.load();
+  // Attempt immediate play (muted autoplay)
+  video1.play().catch(() => {});
 }
 
 // Preload video2 in background
@@ -816,27 +825,63 @@ if (video2) {
 
 setTimeout(handlePhase1Loaded, 3000);
 
-// Called by the tag-reveal unlock to switch to Phase 2
-window._activatePhase2 = function() {
-  if (phase2Active) return;
-  phase2Active = true;
+// ---- Phase switching (bidirectional) ----
 
-  // Crossfade: video1 → video2
+function switchToPhase2() {
+  if (phase2Active || !tagsUnlocked) return;
+  phase2Active = true;
   if (video1) video1.style.opacity = '0';
   if (video2) {
     video2.style.opacity = '1';
     video2.style.pointerEvents = 'auto';
     video2.loop = false; // scrub mode — no loop
-    video2.play();
+    video2.play().catch(() => {});
+  }
+}
+
+function switchToPhase1() {
+  if (!phase2Active) return;
+  phase2Active = false;
+  if (video2) {
+    video2.style.opacity = '0';
+    video2.style.pointerEvents = 'none';
+    video2.pause();
+  }
+  if (video1) {
+    video1.style.opacity = '1';
+    if (video1.paused) video1.play().catch(() => {});
+  }
+}
+
+// Called by tag-reveal unlock — tags have all appeared, scroll is free
+window._activatePhase2 = function() {
+  tagsUnlocked = true;
+  // If already scrolled past hero threshold, switch immediately
+  if (window.scrollY >= window.innerHeight * 0.3) {
+    switchToPhase2();
   }
 };
 
-// Scroll scrub — only active in Phase 2, operates on video2
+// Unified scroll handler: scrub + bidirectional phase switching
 window.addEventListener('scroll', () => {
-  if (!phase2Active || !video2 || !video2.duration || video2.seeking) return;
-  const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-  const scrollFraction = Math.max(0, Math.min(1, window.scrollY / maxScroll));
-  video2.currentTime = scrollFraction * video2.duration;
+  const scrollY = window.scrollY;
+  const heroThreshold = window.innerHeight * 0.3;
+
+  // Bidirectional phase switch (only after tags unlocked)
+  if (tagsUnlocked) {
+    if (scrollY >= heroThreshold && !phase2Active) {
+      switchToPhase2();
+    } else if (scrollY < heroThreshold && phase2Active) {
+      switchToPhase1();
+    }
+  }
+
+  // Scroll scrub on video2 when phase2 active
+  if (phase2Active && video2 && video2.duration && !video2.seeking) {
+    const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    const scrollFraction = Math.max(0, Math.min(1, scrollY / maxScroll));
+    video2.currentTime = scrollFraction * video2.duration;
+  }
 }, { passive: true });
 </script>
 
