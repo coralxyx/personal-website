@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Env
+.env
+.env.local
+
+# Logs
+*.log
+
+# Large media (keep hero.mp4 tracked if small enough)
+# Uncomment if video is too large for GitHub (100MB limit)
+# *.mp4
+# *.mov
