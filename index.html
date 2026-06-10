@@ -703,9 +703,9 @@ tailwind.config = {
 <div id="video-fallback"></div>
 <div id="video-bg" class="fixed inset-0 z-0 bg-black">
   <video id="hero-video-1" muted playsinline preload="auto">
-    <source src="视频1.mp4?v=2" type="video/mp4" />
+    <source src="视频1.mp4?v=3" type="video/mp4" />
   </video>
-  <video id="hero-video-2" muted playsinline preload="none">
+  <video id="hero-video-2" muted playsinline preload="auto">
     <source src="视频2.mp4?v=2" type="video/mp4" />
   </video>
 </div>
@@ -987,38 +987,33 @@ let video2Active = false;    // true after video1 ends → video2 scroll-scrub m
 if (video1) video1.style.opacity = '0';
 if (video2) { video2.style.opacity = '0'; video2.pause(); video2.currentTime = 0; }
 
-// Loading screen: wait until video1 is actually playable (not just metadata)
-let loadingDismissed = false;
-const dismissLoading = () => {
-  if (loadingDismissed) return;
-  loadingDismissed = true;
+// Loading screen: dismiss when video1 has metadata (or 3s timeout)
+const handleVideoReady = () => {
+  if (video1Loaded) return;
+  video1Loaded = true;
   document.body.dataset.loaded = 'true';
 };
 
 if (video1) {
   video1.addEventListener('loadedmetadata', () => {
     video1Duration = video1.duration;
+    handleVideoReady();
   });
-  // canplay = enough data buffered to start playing smoothly
-  video1.addEventListener('canplay', () => {
-    video1Loaded = true;
-    dismissLoading();
-  });
+  video1.addEventListener('loadeddata', handleVideoReady);
   video1.load();
   video1.pause();
   video1.currentTime = 0;
 }
 
-// Preload video2 metadata only — full load deferred until video1 starts playing
+// Preload video2 metadata
 if (video2) {
   video2.addEventListener('loadedmetadata', () => {
     video2Duration = video2.duration;
   });
-  // Don't call video2.load() yet — saves bandwidth for video1
+  video2.load();
 }
 
-// Fallback timeout — dismiss loading after 8s even if video not ready
-setTimeout(dismissLoading, 8000);
+setTimeout(handleVideoReady, 3000);
 
 // ---- Scroll-driven video scrub (rAF loop) ----
 // During tag reveal: scrubs video1 with tag progress
@@ -1071,12 +1066,6 @@ masterScrubLoop();
 window._playVideo1AndUnlock = function() {
   if (!video1 || video1Played) return;
   video1Played = true;
-
-  // Start preloading video2 in background while video1 plays
-  if (video2 && video2.preload === 'none') {
-    video2.preload = 'auto';
-    video2.load();
-  }
 
   // Show and play video1 from the beginning
   video1.style.opacity = '1';
