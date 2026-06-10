@@ -27,9 +27,6 @@ tailwind.config = {
 };
 </script>
 
-<!-- GSAP + ScrollTrigger CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.14.2/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.14.2/ScrollTrigger.min.js"></script>
 
 <style>
   /* =============================================
@@ -71,20 +68,6 @@ tailwind.config = {
   [data-reveal="visible"] {
     opacity: 1;
     transform: translateY(0);
-  }
-
-  /* =============================================
-     CRITICAL CODE BLOCK 3 — Scroll Reveal Text
-     ============================================= */
-  .scroll-reveal { margin: 0; }
-  .scroll-reveal-text {
-    display: flex;
-    flex-wrap: wrap;
-    margin: 0;
-  }
-  .word {
-    display: inline-block;
-    white-space: pre;
   }
 
   /* =============================================
@@ -251,7 +234,7 @@ tailwind.config = {
   }
 
   /* =============================================
-     Identity Tags — Scroll-to-reveal glass badges
+     Identity Tags — 3D cascading reveal
      ============================================= */
   #identity-tags {
     position: absolute;
@@ -261,39 +244,75 @@ tailwind.config = {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 0.75rem;
+    gap: 1rem;
     z-index: 15;
+    perspective: 700px;
+    perspective-origin: right center;
   }
   .tag-badge {
     display: inline-block;
-    padding: 0.5rem 1.1rem;
-    background: rgba(255,255,255,0.03);
+    padding: 0.65rem 1.4rem;
+    /* Keycap gradient: dark charcoal, slightly lighter at top */
+    background: linear-gradient(180deg, #3d3d3d 0%, #2a2a2a 45%, #1e1e1e 100%);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 9999px;
+    /* Keycap border: dark base, thicker at bottom for 3D extrusion */
+    border: 1px solid #1a1a1a;
+    border-bottom: 3px solid #0f0f0f;
+    border-radius: 10px;
     font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.75rem;
-    font-weight: 400;
-    letter-spacing: 0.01em;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
     color: rgba(255,255,255,0);
     white-space: nowrap;
-    opacity: 0;
-    transform: translateX(24px) scale(0.92);
-    transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
-                color 0.55s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: none;
+    transform-origin: right center;
+    /* Keycap 3D shadow */
+    box-shadow:
+      0 3px 0 #0d0d0d,
+      0 5px 12px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.07);
+    /* Hidden default — rotated away */
+    opacity: 0;
+    transform: rotateY(80deg) translateZ(-20px) scale(0.8);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                color 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                background 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                text-shadow 0.7s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .tag-badge.revealed {
+  /* depth 0 — current tag: fully forward, illuminated keycap */
+  .tag-badge[data-depth="0"] {
     opacity: 1;
-    transform: translateX(0) scale(1);
-    color: rgba(255,255,255,0.7);
-  }
-  .tag-badge.revealed:hover {
-    background: rgba(255,255,255,0.06);
-    border-color: rgba(255,255,255,0.12);
+    transform: rotateY(0deg) translateZ(4px) scale(1);
     color: rgba(255,255,255,0.9);
+    background: linear-gradient(180deg, #4a4a4a 0%, #353535 45%, #282828 100%);
+    border-color: #222;
+    border-bottom-color: #111;
+    text-shadow: 0 0 20px rgba(255,255,255,0.2);
+    box-shadow:
+      0 3px 0 #111,
+      0 6px 18px rgba(0,0,0,0.55),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  /* depth 1 — one step back */
+  .tag-badge[data-depth="1"] {
+    opacity: 0.5;
+    transform: rotateY(-22deg) translateZ(-22px) scale(0.9);
+    color: rgba(255,255,255,0.3);
+    text-shadow: none;
+    box-shadow: 0 2px 0 #0d0d0d, 0 4px 10px rgba(0,0,0,0.4);
+  }
+  /* depth 2 — two steps back */
+  .tag-badge[data-depth="2"] {
+    opacity: 0.2;
+    transform: rotateY(-42deg) translateZ(-42px) scale(0.8);
+    color: rgba(255,255,255,0.12);
+    text-shadow: none;
+    box-shadow: none;
   }
 
   /* Scroll indicator dots */
@@ -323,8 +342,8 @@ tailwind.config = {
      ============================================= */
   #timeline-section {
     position: relative;
-    height: 400vh;
-    /* transparent — video2 shows through */
+    height: 500vh;
+    /* transparent — image shows through */
   }
 
   #timeline-sticky {
@@ -336,13 +355,15 @@ tailwind.config = {
     align-items: center;
   }
 
-  /* Fade overlay — right edge items dissolve via dark gradient (video visible through) */
+  /* Fade overlay — both edges dissolve into background (center clear) */
   #timeline-fade {
     position: absolute;
     inset: 0;
     z-index: 10;
     pointer-events: none;
-    background: linear-gradient(to left, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.55) 12%, transparent 32%);
+    background:
+      linear-gradient(to right, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.55) 8%, transparent 22%),
+      linear-gradient(to left,  rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.55) 8%, transparent 22%);
   }
 
   /* Timeline track — horizontally translated via JS */
@@ -351,11 +372,11 @@ tailwind.config = {
     align-items: flex-end;
     gap: 5rem;
     height: 100%;
-    padding: 0 15vw 22vh 15vw;
+    padding: 0 calc(50vw - 140px) 22vh calc(50vw - 140px);
     will-change: transform;
   }
 
-  /* Timeline horizontal line — bright left, transparent right */
+  /* Timeline horizontal line — bright center, fades at both edges */
   #timeline-line {
     position: absolute;
     left: 0;
@@ -366,10 +387,13 @@ tailwind.config = {
     pointer-events: none;
     background: linear-gradient(
       to right,
-      rgba(255,255,255,0.12) 0%,
+      transparent 0%,
+      rgba(255,255,255,0.02) 12%,
       rgba(255,255,255,0.07) 30%,
-      rgba(255,255,255,0.02) 55%,
-      transparent 85%
+      rgba(255,255,255,0.14) 50%,
+      rgba(255,255,255,0.07) 70%,
+      rgba(255,255,255,0.02) 88%,
+      transparent 100%
     );
   }
 
@@ -410,7 +434,7 @@ tailwind.config = {
     width: 280px;
     padding-bottom: 1.75rem;
     z-index: 5;
-    transition: opacity 0.12s linear, filter 0.12s linear;
+    transition: opacity 0.12s linear, filter 0.12s linear, transform 0.12s linear;
   }
 
   /* Connector dot — sits on the timeline line */
@@ -435,13 +459,20 @@ tailwind.config = {
     border: 1px solid rgba(255,255,255,0.05);
     border-radius: 10px;
     padding: 1.25rem 1.25rem 1rem;
-    transition: background 0.4s ease, border-color 0.4s ease;
-    cursor: default;
+    transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, transform 0.4s ease;
+    cursor: pointer;
   }
 
-  .timeline-card:hover {
-    background: rgba(255,255,255,0.04);
-    border-color: rgba(255,255,255,0.1);
+  .timeline-item:hover .timeline-card {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.2);
+    box-shadow: 0 0 30px rgba(255,255,255,0.05), 0 8px 24px rgba(0,0,0,0.35);
+    transform: translateY(-2px);
+  }
+
+  .timeline-item:hover::after {
+    background: rgba(255,255,255,0.7);
+    box-shadow: 0 0 10px rgba(255,255,255,0.3);
   }
 
   /* Year */
@@ -490,12 +521,167 @@ tailwind.config = {
 
   /* Responsive: smaller cards on mobile */
   @media (max-width: 768px) {
-    #timeline-section { height: 350vh; }
-    #timeline-track { gap: 3rem; padding: 0 10vw 22vh 10vw; }
+    #timeline-section { height: 450vh; }
+    #timeline-track { gap: 3rem; padding: 0 calc(50vw - 120px) 22vh calc(50vw - 120px); }
     #timeline-label { left: 10vw; }
     #timeline-quote { left: 10vw; font-size: 1rem; max-width: 280px; }
     .timeline-item { width: 240px; }
     .timeline-title { font-size: 0.9rem; }
+  }
+
+  /* =============================================
+     Project Detail Overlay — TV Screen Modal
+     ============================================= */
+  #project-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  #project-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Backdrop — darkens and blurs the page behind */
+  #project-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0);
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    transition: background 0.6s ease, backdrop-filter 0.6s ease, -webkit-backdrop-filter 0.6s ease;
+  }
+  #project-overlay.active #project-backdrop {
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* TV container — scales up on activate */
+  #project-tv-container {
+    position: relative;
+    z-index: 1;
+    transform: scale(0.5);
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #project-overlay.active #project-tv-container {
+    transform: scale(1);
+  }
+
+  /* TV image */
+  #project-tv-img {
+    display: block;
+    max-width: 88vw;
+    max-height: 82vh;
+    object-fit: contain;
+    filter: drop-shadow(0 0 60px rgba(0,0,0,0.6));
+  }
+
+  /* TV screen area — where project text goes */
+  #project-tv-screen {
+    position: absolute;
+    top: 8%;
+    left: 12%;
+    right: 12%;
+    bottom: 18%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    overflow: hidden;
+  }
+
+  /* Screen content — fades in after TV scales */
+  #project-tv-screen .tv-content {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease 0.4s, transform 0.5s ease 0.4s;
+  }
+  #project-overlay.active #project-tv-screen .tv-content {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* TV screen text styles */
+  .tv-year {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 1rem;
+  }
+  .tv-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: -0.01em;
+    margin-bottom: 0.75rem;
+    line-height: 1.2;
+  }
+  .tv-desc {
+    font-size: clamp(0.75rem, 1.5vw, 0.95rem);
+    font-weight: 300;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.6;
+    max-width: 80%;
+  }
+  .tv-cat {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    padding: 0.25rem 0.75rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 9999px;
+    margin-top: 1rem;
+  }
+
+  /* Back button */
+  #project-back-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 102;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.2rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 9999px;
+    color: rgba(255,255,255,0.6);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 400;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    transition-delay: 0s;
+    pointer-events: none;
+  }
+  #project-overlay.active #project-back-btn {
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 0.5s;
+    pointer-events: auto;
+  }
+  #project-back-btn:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.9);
   }
 </style>
 </head>
@@ -519,7 +705,7 @@ tailwind.config = {
   <video id="hero-video-1" muted playsinline preload="auto">
     <source src="视频1.mp4" type="video/mp4" />
   </video>
-  <video id="hero-video-2" muted playsinline preload="auto" loop style="opacity:0; pointer-events:none;">
+  <video id="hero-video-2" muted playsinline preload="auto">
     <source src="视频2.mp4" type="video/mp4" />
   </video>
 </div>
@@ -604,12 +790,11 @@ tailwind.config = {
         </div>
       </div>
 
-      <!-- Identity Tags — scroll-to-reveal glass badges (right side) -->
+      <!-- Identity Tags — scroll-to-reveal keycap badges (right side) -->
       <div id="identity-tags">
-        <span class="tag-badge">上海交通大学设计学在读</span>
+        <span class="tag-badge">ESFP 高能量人士</span>
         <span class="tag-badge">羽毛球爱好者</span>
-        <span class="tag-badge">卡牌游戏重度爱好者</span>
-        <span class="tag-badge">ESFP</span>
+        <span class="tag-badge">card games 爱好者</span>
       </div>
 
       <!-- Scroll indicator -->
@@ -617,7 +802,6 @@ tailwind.config = {
         <span id="scroll-label" class="font-mono text-[9px] tracking-[0.2em] uppercase">Scroll to discover</span>
         <div id="scroll-dots">
           <span class="dot active"></span>
-          <span class="dot"></span>
           <span class="dot"></span>
           <span class="dot"></span>
         </div>
@@ -637,6 +821,7 @@ tailwind.config = {
 
         <!-- Persistent quote -->
         <p id="timeline-quote">The deepest insights live between what people say, what they do, and what the data reveals.</p>
+
 
         <!-- Timeline track — cards arranged left(present) to right(past) -->
         <div id="timeline-track">
@@ -784,215 +969,129 @@ tailwind.config = {
 </div><!-- .relative.z-10 -->
 
 <!-- =============================================
-     CRITICAL CODE BLOCK 2 — Two-Phase Video Logic
-     Phase 1: 视频1.mp4 auto-plays during tag reveal (scroll locked)
-     Phase 2: 视频2.mp4 scroll-scrubs after unlock
+     CRITICAL CODE BLOCK 2 — Video Playback & Scroll Scrub
+     Phase 1 (locked):  video1 hidden, scrubs with tag reveal progress via rAF
+     Phase 2 (tags done): video1 plays once from start to end
+     Phase 3 (unlocked): video2 scroll-driven bidirectional scrub (scroll down→forward, up→rewind)
      ============================================= -->
 <script>
 const video1 = document.getElementById('hero-video-1');
 const video2 = document.getElementById('hero-video-2');
 let video1Loaded = false;
-let video2Loaded = false;
-let tagsUnlocked = false;
-let phase2Active = false;
+let video1Duration = 0;
+let video2Duration = 0;
+let video1Played = false;    // whether video1 has finished its one-shot play
+let video2Active = false;    // true after video1 ends → video2 scroll-scrub mode
 
-// Loading screen: dismiss when video1 is ready (or 3s timeout)
-const handlePhase1Loaded = () => {
+// Initially hide both videos — video1 plays after tags, video2 after video1
+if (video1) video1.style.opacity = '0';
+if (video2) { video2.style.opacity = '0'; video2.pause(); video2.currentTime = 0; }
+
+// Loading screen: dismiss when video1 has metadata (or 3s timeout)
+const handleVideoReady = () => {
   if (video1Loaded) return;
   video1Loaded = true;
   document.body.dataset.loaded = 'true';
-  // Auto-play video1 once ready
-  if (video1 && video1.paused) {
-    video1.play().catch(() => {});
-  }
 };
 
 if (video1) {
-  video1.addEventListener('loadeddata', handlePhase1Loaded);
-  video1.addEventListener('canplay', handlePhase1Loaded);
-  video1.addEventListener('canplaythrough', handlePhase1Loaded);
+  video1.addEventListener('loadedmetadata', () => {
+    video1Duration = video1.duration;
+    handleVideoReady();
+  });
+  video1.addEventListener('loadeddata', handleVideoReady);
   video1.load();
-  // Attempt immediate play (muted autoplay)
-  video1.play().catch(() => {});
+  video1.pause();
+  video1.currentTime = 0;
 }
 
-// Preload video2 in background
+// Preload video2 metadata
 if (video2) {
-  video2.addEventListener('loadeddata', () => { video2Loaded = true; });
-  video2.addEventListener('canplay', () => { video2Loaded = true; });
+  video2.addEventListener('loadedmetadata', () => {
+    video2Duration = video2.duration;
+  });
   video2.load();
 }
 
-setTimeout(handlePhase1Loaded, 3000);
+setTimeout(handleVideoReady, 3000);
 
-// ---- Phase switching (bidirectional) ----
+// ---- Scroll-driven video scrub (rAF loop) ----
+// During tag reveal: scrubs video1 with tag progress
+// After video1 ends: scrubs video2 bidirectionally with scroll position
 
-function switchToPhase2() {
-  if (phase2Active || !tagsUnlocked) return;
-  phase2Active = true;
-  if (video1) video1.style.opacity = '0';
-  if (video2) {
-    video2.style.opacity = '1';
-    video2.style.pointerEvents = 'auto';
-    video2.loop = false; // scrub mode — no loop
-    // Initialize first frame without continuous playback
-    video2.currentTime = 0;
-    const init = video2.play();
-    if (init !== undefined) {
-      init.then(() => { video2.pause(); }).catch(() => {});
+function getVideo1Progress() {
+  if (window._tagRevealCount !== undefined && window._tagRevealTotal !== undefined) {
+    if (!video1Played && window._tagRevealTotal > 0) {
+      return Math.min(1, window._tagRevealCount / window._tagRevealTotal);
     }
   }
-  startScrubLoop();
+  return 0;
 }
 
-function switchToPhase1() {
-  if (!phase2Active) return;
-  phase2Active = false;
-  stopScrubLoop();
-  if (video2) {
-    video2.style.opacity = '0';
-    video2.style.pointerEvents = 'none';
-    video2.pause();
-  }
-  if (video1) {
-    video1.style.opacity = '1';
-    // Only resume if video1 hasn't finished its single playthrough
-    if (video1.paused && !video1.ended) video1.play().catch(() => {});
-  }
+function getVideo2Progress() {
+  // Map scrollY from top to page bottom → progress [0, 1]
+  const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+  if (maxScroll <= 0) return 0;
+  return Math.max(0, Math.min(1, window.scrollY / maxScroll));
 }
 
-// Called by tag-reveal unlock — tags have all appeared, scroll is free
-window._activatePhase2 = function() {
-  tagsUnlocked = true;
-  // If already scrolled past hero threshold, switch immediately
-  if (window.scrollY >= window.innerHeight * 0.3) {
-    switchToPhase2();
+function masterScrubLoop() {
+  if (!video1Played) {
+    // Phase 1: video1 scrubs with tag reveal
+    if (video1 && video1Duration > 0 && video1.readyState >= 2) {
+      video1.currentTime = getVideo1Progress() * video1Duration;
+    }
+  } else if (video2Active) {
+    // Phase 2: crossfade video1 (cover) ↔ video2 (scroll-scrub)
+    const fadeThreshold = Math.min(200, window.innerHeight * 0.2);
+    const fade = Math.max(0, Math.min(1, window.scrollY / fadeThreshold));
+
+    // video1 visible at top (cover), fades out on scroll down
+    if (video1) video1.style.opacity = (1 - fade).toFixed(2);
+    // video2 hidden at top, fades in on scroll down
+    if (video2) video2.style.opacity = fade.toFixed(2);
+
+    // video2 scrubs bidirectionally with scroll
+    if (video2 && video2Duration > 0 && video2.readyState >= 2) {
+      video2.currentTime = getVideo2Progress() * video2Duration;
+    }
   }
+  requestAnimationFrame(masterScrubLoop);
+}
+
+// Start the unified rAF scrub loop
+masterScrubLoop();
+
+// ---- Play video1 after all tags revealed ----
+window._playVideo1AndUnlock = function() {
+  if (!video1 || video1Played) return;
+  video1Played = true;
+
+  // Show and play video1 from the beginning
+  video1.style.opacity = '1';
+  video1.currentTime = 0;
+  video1.play().catch(() => {
+    video1.currentTime = video1Duration || 0;
+    finishVideo1Sequence();
+  });
+
+  video1.addEventListener('ended', finishVideo1Sequence, { once: true });
 };
 
-// ---- Scroll-driven video2 scrub (rAF, no continuous playback) ----
-let scrubRAF = null;
+// ---- After video1 ends → switch to video2 scroll-scrub ----
+function finishVideo1Sequence() {
+  video2Active = true;
+  // Opacity is now driven by masterScrubLoop (crossfade based on scrollY)
+  // At scrollY=0: video1 visible (cover), video2 hidden
+  // As user scrolls down: video1→video2 crossfade
 
-function scrubVideo2() {
-  scrubRAF = null;
-  if (!phase2Active || !video2 || !video2.duration) return;
-
-  const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-  const scrollFraction = Math.max(0, Math.min(1, window.scrollY / maxScroll));
-  const target = scrollFraction * video2.duration;
-
-  // Only set if different enough (avoids unnecessary seeking)
-  if (Math.abs(video2.currentTime - target) > 0.05 && !video2.seeking) {
-    video2.currentTime = target;
-  }
-
-  scrubRAF = requestAnimationFrame(scrubVideo2);
-}
-
-function startScrubLoop() {
-  if (scrubRAF) return;
-  scrubRAF = requestAnimationFrame(scrubVideo2);
-}
-
-function stopScrubLoop() {
-  if (scrubRAF) {
-    cancelAnimationFrame(scrubRAF);
-    scrubRAF = null;
-  }
-}
-
-// Scroll handler: bidirectional phase switching (scrub started/stopped inside switch functions)
-window.addEventListener('scroll', () => {
-  const scrollY = window.scrollY;
-  const heroThreshold = window.innerHeight * 0.3;
-
-  if (tagsUnlocked) {
-    if (scrollY >= heroThreshold && !phase2Active) {
-      switchToPhase2();
-    } else if (scrollY < heroThreshold && phase2Active) {
-      switchToPhase1();
-    }
-  }
-}, { passive: true });
-</script>
-
-<!-- =============================================
-     CRITICAL CODE BLOCK 3 — GSAP Scroll Reveal
-     ============================================= -->
-<script>
-if (window.gsap && window.ScrollTrigger) {
-  gsap.registerPlugin(ScrollTrigger);
-
-  document.querySelectorAll('[data-scroll-reveal]').forEach((el) => {
-    const text = el.textContent || '';
-    el.textContent = '';
-    el.classList.add('scroll-reveal');
-
-    const p = document.createElement('p');
-    p.className = 'scroll-reveal-text ' + (el.dataset.textClass || '');
-
-    text.split(/(\s+)/).forEach((part) => {
-      if (!part) return;
-      const span = document.createElement('span');
-      span.className = 'word';
-      span.textContent = part;
-      p.appendChild(span);
-    });
-
-    el.appendChild(p);
-
-    // 3deg -> 0 rotation
-    gsap.fromTo(el,
-      { rotate: 3, transformOrigin: '0% 50%' },
-      {
-        rotate: 0,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: el,
-          start: 'top bottom',
-          end: 'bottom bottom',
-          scrub: true,
-        },
-      }
-    );
-
-    // 0.1 -> 1 opacity with stagger 0.05
-    gsap.fromTo(p.querySelectorAll('.word'),
-      { opacity: 0.1 },
-      {
-        opacity: 1,
-        stagger: 0.05,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: el,
-          start: 'top bottom-=20%',
-          end: 'bottom bottom',
-          scrub: true,
-        },
-      }
-    );
-
-    // 4px blur -> 0
-    gsap.fromTo(p.querySelectorAll('.word'),
-      { filter: 'blur(4px)' },
-      {
-        filter: 'blur(0px)',
-        stagger: 0.05,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: el,
-          start: 'top bottom-=20%',
-          end: 'bottom bottom',
-          scrub: true,
-        },
-      }
-    );
-  });
+  // Release body scroll
+  if (window._releaseBodyScroll) window._releaseBodyScroll();
 }
 </script>
 
 <!-- =============================================
-     CRITICAL CODE BLOCK 4 — IntersectionObserver Reveal
+     CRITICAL CODE BLOCK 3 — IntersectionObserver Reveal
      ============================================= -->
 <script>
 const revealObserver = new IntersectionObserver((entries) => {
@@ -1026,6 +1125,11 @@ window.addEventListener('scroll', () => {
      SCROLL-LOCKED IDENTITY TAG REVEAL
      ============================================= -->
 <script>
+// Always start at top on reload — disable browser scroll restoration
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+
 (() => {
   const tags = document.querySelectorAll('#identity-tags .tag-badge');
   const dots = document.querySelectorAll('#scroll-dots .dot');
@@ -1033,6 +1137,8 @@ window.addEventListener('scroll', () => {
   const scrollArrow = document.getElementById('scroll-arrow');
   const scrollHint = document.getElementById('scroll-hint');
   const total = tags.length;
+  window._tagRevealTotal = total;
+  window._tagRevealCount = 0;
   let revealed = 0;
   let cooldown = false;
   let unlocked = false;
@@ -1044,44 +1150,90 @@ window.addEventListener('scroll', () => {
 
   function revealNext() {
     if (revealed >= total) return;
-    tags[revealed].classList.add('revealed');
-    dots[revealed].classList.add('active');
     revealed++;
+    applyDepth();
+  }
 
-    // Update scroll indicator
-    if (revealed >= total) {
+  function revealPrev() {
+    if (revealed <= 0) return;
+    revealed--;
+    applyDepth();
+  }
+
+  function applyDepth() {
+    // All revealed tags stay at depth 0 (fully forward, retained)
+    tags.forEach((tag, i) => {
+      if (i < revealed) {
+        tag.setAttribute('data-depth', '0');
+      } else {
+        tag.removeAttribute('data-depth'); // not yet revealed → hidden
+      }
+    });
+
+    // Update scroll dots
+    dots.forEach((dot, i) => {
+      if (i < revealed) dot.classList.add('active');
+      else dot.classList.remove('active');
+    });
+
+    // Update video scrub progress
+    window._tagRevealCount = revealed;
+
+    // Unlock or re-lock scroll based on reveal state
+    if (revealed >= total && !unlocked) {
       unlockScroll();
+    } else if (revealed < total && unlocked) {
+      relockScroll();
     }
   }
 
   function unlockScroll() {
     if (unlocked) return;
     unlocked = true;
-    document.body.style.overflow = '';
+    // Keep body scroll locked during video1 playback — released by _releaseBodyScroll
     scrollLabel.style.opacity = '0';
     scrollArrow.style.opacity = '0';
     document.getElementById('scroll-dots').style.opacity = '0';
     scrollHint.style.opacity = '1';
 
-    // Switch video to Phase 2 — crossfade to 视频2.mp4 + enable scroll scrub
-    if (window._activatePhase2) window._activatePhase2();
+    // Play video1 — scroll unlocks & Phase 2 activates after video ends
+    if (window._playVideo1AndUnlock) window._playVideo1AndUnlock();
   }
 
-  // Wheel handler — reveal one tag per scroll tick
+  // Called by video script when video1 finishes playing
+  window._releaseBodyScroll = function() {
+    document.body.style.overflow = '';
+  };
+
+  function relockScroll() {
+    if (!unlocked) return;
+    unlocked = false;
+    document.body.style.overflow = 'hidden';
+    scrollLabel.style.opacity = '1';
+    scrollArrow.style.opacity = '1';
+    document.getElementById('scroll-dots').style.opacity = '1';
+    scrollHint.style.opacity = '0';
+  }
+
+  // Wheel handler — bidirectional tag reveal (only when locked)
   window.addEventListener('wheel', (e) => {
-    if (unlocked) return;
-    if (e.deltaY <= 0) return; // only scroll-down reveals
+    if (unlocked) return; // native scroll after unlock — don't interfere
     if (cooldown) return;
-
     e.preventDefault();
-    revealNext();
 
-    // Cooldown to prevent rapid-fire
+    if (e.deltaY > 0) {
+      if (revealed >= total) return;
+      revealNext();
+    } else {
+      if (revealed <= 0) return;
+      revealPrev();
+    }
+
     cooldown = true;
-    setTimeout(() => { cooldown = false; }, 600);
+    setTimeout(() => { cooldown = false; }, 500);
   }, { passive: false });
 
-  // Touch handler for mobile
+  // Touch handler for mobile — bidirectional swipe (only when locked)
   let touchStartY = 0;
   window.addEventListener('touchstart', (e) => {
     if (unlocked) return;
@@ -1091,12 +1243,17 @@ window.addEventListener('scroll', () => {
   window.addEventListener('touchmove', (e) => {
     if (unlocked) return;
     const deltaY = touchStartY - e.touches[0].clientY;
-    if (deltaY <= 20) return; // threshold — only clear swipes
+    if (Math.abs(deltaY) <= 20) return;
     if (cooldown) return;
 
     e.preventDefault();
-    revealNext();
-    touchStartY = e.touches[0].clientY; // reset to avoid chaining
+
+    if (deltaY > 0 && revealed < total) {
+      revealNext();
+    } else if (deltaY < 0 && revealed > 0) {
+      revealPrev();
+    }
+    touchStartY = e.touches[0].clientY;
 
     cooldown = true;
     setTimeout(() => { cooldown = false; }, 600);
@@ -1144,28 +1301,35 @@ window.addEventListener('scroll', () => {
 
   function updateItemOpacity() {
     const vw = window.innerWidth;
-    const brightEnd = vw * 0.35;   // left 35%: fully bright
-    const fadeEnd = vw * 0.75;     // beyond 75%: fully faded
+    const vwCenter = vw / 2;
+    const brightHalf = vw * 0.18;   // center ±18vw wide = fully bright + large
+    const fadeHalf = vw * 0.42;     // beyond ±42vw = fully faded + small
 
     items.forEach(item => {
       const rect = item.getBoundingClientRect();
-      const center = rect.left + rect.width / 2;
+      const itemCenter = rect.left + rect.width / 2;
+      const dist = Math.abs(itemCenter - vwCenter);
 
-      let opacity, blur;
-      if (center <= brightEnd) {
+      let opacity, blur, scale;
+      if (dist <= brightHalf) {
         opacity = 1;
         blur = 0;
-      } else if (center >= fadeEnd) {
+        scale = 1;
+      } else if (dist >= fadeHalf) {
         opacity = 0.06;
-        blur = 2;
+        blur = 2.5;
+        scale = 0.6;
       } else {
-        const t = (center - brightEnd) / (fadeEnd - brightEnd);
+        const t = (dist - brightHalf) / (fadeHalf - brightHalf);
         opacity = 1 - t * 0.94;
-        blur = t * 2;
+        blur = t * 2.5;
+        scale = 1 - t * 0.4;
       }
       item.style.opacity = opacity.toFixed(2);
       item.style.filter = `blur(${blur.toFixed(1)}px)`;
+      item.style.transform = `scale(${scale.toFixed(2)})`;
     });
+
   }
 
   // Measure on load + resize
@@ -1177,6 +1341,88 @@ window.addEventListener('scroll', () => {
 
   // Initial call (in case section is already partially visible)
   updateTimeline();
+})();
+</script>
+
+<!-- =============================================
+     PROJECT DETAIL OVERLAY — TV Screen Modal
+     ============================================= -->
+<div id="project-overlay">
+  <div id="project-backdrop"></div>
+  <div id="project-tv-container">
+    <img id="project-tv-img" src="图片1.png" alt="TV Frame" />
+    <div id="project-tv-screen">
+      <div class="tv-content">
+        <span id="tv-year" class="tv-year"></span>
+        <h2 id="tv-title" class="tv-title"></h2>
+        <p id="tv-desc" class="tv-desc"></p>
+        <span id="tv-cat" class="tv-cat"></span>
+      </div>
+    </div>
+  </div>
+  <button id="project-back-btn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    返回
+  </button>
+</div>
+
+<!-- =============================================
+     PROJECT DETAIL OVERLAY — Click Handlers
+     ============================================= -->
+<script>
+(() => {
+  const overlay = document.getElementById('project-overlay');
+  const tvYear = document.getElementById('tv-year');
+  const tvTitle = document.getElementById('tv-title');
+  const tvDesc = document.getElementById('tv-desc');
+  const tvCat = document.getElementById('tv-cat');
+  const backBtn = document.getElementById('project-back-btn');
+  const backdrop = document.getElementById('project-backdrop');
+
+  if (!overlay || !backBtn) return;
+
+  // Click handler on each timeline card
+  document.querySelectorAll('.timeline-item').forEach(item => {
+    const card = item.querySelector('.timeline-card');
+    if (!card) return;
+
+    card.addEventListener('click', () => {
+      const year = item.querySelector('.timeline-year')?.textContent || '';
+      const title = item.querySelector('.timeline-title')?.textContent || '';
+      const desc = item.querySelector('.timeline-desc')?.textContent || '';
+      const cat = item.querySelector('.timeline-cat')?.textContent || '';
+
+      tvYear.textContent = year;
+      tvTitle.textContent = title;
+      tvDesc.textContent = desc;
+      tvCat.textContent = cat;
+
+      // Lock body scroll
+      document.body.style.overflow = 'hidden';
+
+      // Trigger animations
+      overlay.classList.add('active');
+    });
+  });
+
+  // Back button — close overlay
+  function closeOverlay() {
+    overlay.classList.remove('active');
+    // Restore body scroll
+    document.body.style.overflow = '';
+  }
+
+  backBtn.addEventListener('click', closeOverlay);
+
+  // Click backdrop to close too
+  backdrop.addEventListener('click', closeOverlay);
+
+  // ESC key to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay.classList.contains('active')) {
+      closeOverlay();
+    }
+  });
 })();
 </script>
 
