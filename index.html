@@ -835,13 +835,20 @@ function switchToPhase2() {
     video2.style.opacity = '1';
     video2.style.pointerEvents = 'auto';
     video2.loop = false; // scrub mode — no loop
-    video2.play().catch(() => {});
+    // Initialize first frame without continuous playback
+    video2.currentTime = 0;
+    const init = video2.play();
+    if (init !== undefined) {
+      init.then(() => { video2.pause(); }).catch(() => {});
+    }
   }
+  startScrubLoop();
 }
 
 function switchToPhase1() {
   if (!phase2Active) return;
   phase2Active = false;
+  stopScrubLoop();
   if (video2) {
     video2.style.opacity = '0';
     video2.style.pointerEvents = 'none';
@@ -862,25 +869,48 @@ window._activatePhase2 = function() {
   }
 };
 
-// Unified scroll handler: scrub + bidirectional phase switching
+// ---- Scroll-driven video2 scrub (rAF, no continuous playback) ----
+let scrubRAF = null;
+
+function scrubVideo2() {
+  scrubRAF = null;
+  if (!phase2Active || !video2 || !video2.duration) return;
+
+  const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  const scrollFraction = Math.max(0, Math.min(1, window.scrollY / maxScroll));
+  const target = scrollFraction * video2.duration;
+
+  // Only set if different enough (avoids unnecessary seeking)
+  if (Math.abs(video2.currentTime - target) > 0.05 && !video2.seeking) {
+    video2.currentTime = target;
+  }
+
+  scrubRAF = requestAnimationFrame(scrubVideo2);
+}
+
+function startScrubLoop() {
+  if (scrubRAF) return;
+  scrubRAF = requestAnimationFrame(scrubVideo2);
+}
+
+function stopScrubLoop() {
+  if (scrubRAF) {
+    cancelAnimationFrame(scrubRAF);
+    scrubRAF = null;
+  }
+}
+
+// Scroll handler: bidirectional phase switching (scrub started/stopped inside switch functions)
 window.addEventListener('scroll', () => {
   const scrollY = window.scrollY;
   const heroThreshold = window.innerHeight * 0.3;
 
-  // Bidirectional phase switch (only after tags unlocked)
   if (tagsUnlocked) {
     if (scrollY >= heroThreshold && !phase2Active) {
       switchToPhase2();
     } else if (scrollY < heroThreshold && phase2Active) {
       switchToPhase1();
     }
-  }
-
-  // Scroll scrub on video2 when phase2 active
-  if (phase2Active && video2 && video2.duration && !video2.seeking) {
-    const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-    const scrollFraction = Math.max(0, Math.min(1, scrollY / maxScroll));
-    video2.currentTime = scrollFraction * video2.duration;
   }
 }, { passive: true });
 </script>
