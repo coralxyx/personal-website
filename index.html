@@ -516,7 +516,7 @@ tailwind.config = {
      ============================================= -->
 <div id="video-fallback"></div>
 <div id="video-bg" class="fixed inset-0 z-0 bg-black">
-  <video id="hero-video-1" muted playsinline preload="auto" loop>
+  <video id="hero-video-1" muted playsinline preload="auto">
     <source src="视频1.mp4" type="video/mp4" />
   </video>
   <video id="hero-video-2" muted playsinline preload="auto" loop style="opacity:0; pointer-events:none;">
@@ -856,7 +856,8 @@ function switchToPhase1() {
   }
   if (video1) {
     video1.style.opacity = '1';
-    if (video1.paused) video1.play().catch(() => {});
+    // Only resume if video1 hasn't finished its single playthrough
+    if (video1.paused && !video1.ended) video1.play().catch(() => {});
   }
 }
 
