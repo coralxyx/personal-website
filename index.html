@@ -43,6 +43,7 @@ tailwind.config = {
     min-width: 100%;
     min-height: 100%;
     object-fit: cover;
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Video overlay — cinematic grain + vignette */
@@ -335,8 +336,11 @@ tailwind.config = {
      ============================================= -->
 <div id="video-fallback"></div>
 <div id="video-bg" class="fixed inset-0 z-0 bg-black">
-  <video id="hero-video" muted playsinline preload="auto" loop>
-    <source src="hero.mp4" type="video/mp4" />
+  <video id="hero-video-1" muted playsinline preload="auto" loop>
+    <source src="视频1.mp4" type="video/mp4" />
+  </video>
+  <video id="hero-video-2" muted playsinline preload="auto" loop style="opacity:0; pointer-events:none;">
+    <source src="视频2.mp4" type="video/mp4" />
   </video>
 </div>
 
@@ -687,35 +691,61 @@ tailwind.config = {
 </div><!-- .relative.z-10 -->
 
 <!-- =============================================
-     CRITICAL CODE BLOCK 2 — Video Scrub JS
+     CRITICAL CODE BLOCK 2 — Two-Phase Video Logic
+     Phase 1: 视频1.mp4 auto-plays during tag reveal (scroll locked)
+     Phase 2: 视频2.mp4 scroll-scrubs after unlock
      ============================================= -->
 <script>
-const VIDEO_URL = 'hero.mp4';
-const video = document.getElementById('hero-video');
-let isLoaded = false;
+const video1 = document.getElementById('hero-video-1');
+const video2 = document.getElementById('hero-video-2');
+let video1Loaded = false;
+let video2Loaded = false;
+let phase2Active = false;
 
-// Load with 3s safety timeout
-const handleLoaded = () => {
-  if (isLoaded) return;
-  isLoaded = true;
+// Loading screen: dismiss when video1 is ready (or 3s timeout)
+const handlePhase1Loaded = () => {
+  if (video1Loaded) return;
+  video1Loaded = true;
   document.body.dataset.loaded = 'true';
 };
 
-if (video) {
-  video.addEventListener('loadeddata', handleLoaded);
-  video.addEventListener('canplay', handleLoaded);
-  video.addEventListener('canplaythrough', handleLoaded);
-  video.load();
+if (video1) {
+  video1.addEventListener('loadeddata', handlePhase1Loaded);
+  video1.addEventListener('canplay', handlePhase1Loaded);
+  video1.addEventListener('canplaythrough', handlePhase1Loaded);
+  video1.load();
 }
 
-setTimeout(handleLoaded, 3000);
+// Preload video2 in background
+if (video2) {
+  video2.addEventListener('loadeddata', () => { video2Loaded = true; });
+  video2.addEventListener('canplay', () => { video2Loaded = true; });
+  video2.load();
+}
 
-// Scroll scrub — video.seeking guard
+setTimeout(handlePhase1Loaded, 3000);
+
+// Called by the tag-reveal unlock to switch to Phase 2
+window._activatePhase2 = function() {
+  if (phase2Active) return;
+  phase2Active = true;
+
+  // Crossfade: video1 → video2
+  if (video1) video1.style.opacity = '0';
+  if (video2) {
+    video2.style.opacity = '1';
+    video2.style.pointerEvents = 'auto';
+    video2.loop = false; // scrub mode — no loop
+    video2.play();
+  }
+};
+
+// Scroll scrub — only active in Phase 2, operates on video2
 window.addEventListener('scroll', () => {
-  if (!isLoaded || !video || !video.duration || video.seeking) return;
+  if (!phase2Active || !video2 || !video2.duration || video2.seeking) return;
   const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
   const scrollFraction = Math.max(0, Math.min(1, window.scrollY / maxScroll));
-  video.currentTime = scrollFraction * video.duration;
+  video2.currentTime = scrollFraction * video2.duration;
 }, { passive: true });
 </script>
 
@@ -865,6 +895,9 @@ window.addEventListener('scroll', () => {
     scrollArrow.style.opacity = '0';
     document.getElementById('scroll-dots').style.opacity = '0';
     scrollHint.style.opacity = '1';
+
+    // Switch video to Phase 2 — crossfade to 视频2.mp4 + enable scroll scrub
+    if (window._activatePhase2) window._activatePhase2();
   }
 
   // Wheel handler — reveal one tag per scroll tick
