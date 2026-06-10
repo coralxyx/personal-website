@@ -16,7 +16,9 @@ Thumbs.db
 # Logs
 *.log
 
-# Large media (keep hero.mp4 tracked if small enough)
-# Uncomment if video is too large for GitHub (100MB limit)
+# Claude
+.claude/
+
+# Large media
 # *.mp4
 # *.mov
